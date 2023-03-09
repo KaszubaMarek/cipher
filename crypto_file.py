@@ -25,15 +25,13 @@ class CryptoFile:
             algorithm=hashes.SHA256(),
             length=32,
             salt=self.salt,
-            iterations=480000
+            iterations=960000
         )
-
         self.key = base64.urlsafe_b64encode(kdf.derive(self.password.encode('UTF-8')))
 
         return self
 
     def encrypt_mode(self):
-        print('encrypt mode')
         self.new_handler = open(file=self.new_file, mode='wb')
         decrypted_content = self.handler.read()
 
@@ -43,7 +41,6 @@ class CryptoFile:
         self.new_handler.write(token)
 
     def decrypt_mode(self):
-        print('decrypt mode')
         self.new_handler = open(file=self.new_file, mode='w')
 
         token = self.handler.read()
@@ -51,13 +48,10 @@ class CryptoFile:
 
         try:
             decrypted_content = fernet.decrypt(token=token)
-            print(decrypted_content.decode('UTF-8'))
             self.new_handler.write(decrypted_content.decode('UTF-8'))
         except(InvalidToken, InvalidSignature):
             print("Something went wrong")
 
     def __exit__(self, exc_type, exc_value, exc_tb):
-        print('exit CM')
         self.handler.close()
-
         self.new_handler.close()
