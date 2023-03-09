@@ -1,5 +1,7 @@
+from alive_progress import alive_bar
 from crypto_file import CryptoFile
 import argparse
+import time
 from os import walk, makedirs
 from shutil import rmtree
 
@@ -26,25 +28,39 @@ class Tree:
         self.mode = mode
         self.new_directory = self.mode + 'ed_' + self.selected_directory.split('_')[-1]
 
+    @staticmethod
+    def measure_time(func):
+        def wrapper(*args, **kwargs):
+            st = time.time()
+            result = func(*args, **kwargs)
+            et = time.time()
+            elapsed_time = et - st
+            print(f'Execution time: {round(elapsed_time, 3)} seconds')
+            return result
+        return wrapper
+
+    @measure_time
     def copy_tree(self):
         password = input('Enter Password -> ')
         makedirs(name=self.new_directory, exist_ok=True)
 
-        for path, directories, files in walk(self.selected_directory):
-            new = path.split(sep='/')
-            new[0] = self.new_directory
-            makedirs('/'.join(new), exist_ok=True)
-            if files:
-                for file in files:
-                    with CryptoFile(
-                            file=path + '/' + file,
-                            mode=self.mode,
-                            password=password,
-                            new_file='/'.join(new) + '/' + file
-                                    ) as cf:
-                        mode_mapper = {'encrypt': cf.encrypt_mode, 'decrypt': cf.decrypt_mode}
-                        func = mode_mapper.get(self.mode)
-                        func()
+        with alive_bar(title=self.selected_directory, length=20) as bar:
+            for path, directories, files in walk(self.selected_directory):
+                new = path.split(sep='/')
+                new[0] = self.new_directory
+                makedirs('/'.join(new), exist_ok=True)
+                if files:
+                    for file in files:
+                        with CryptoFile(
+                                file=path + '/' + file,
+                                mode=self.mode,
+                                password=password,
+                                new_file='/'.join(new) + '/' + file
+                                        ) as cf:
+                            mode_mapper = {'encrypt': cf.encrypt_mode, 'decrypt': cf.decrypt_mode}
+                            func = mode_mapper.get(self.mode)
+                            func()
+            bar()
 
     def remove_old_tree(self):
         rmtree(self.selected_directory)
